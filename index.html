@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Drag Nano Tower</title>
+  <!-- Подключаем Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-outer: #12151c;
+      --cream: #f4f6fa;
+      --warm-brown: #1f2430;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --gold: #f59e0b;
+      --card-bg: rgba(24, 28, 38, 0.96);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-outer);
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    #game-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: calc(100vh * (9 / 16));
+      max-height: calc(100vw * (16 / 9));
+      aspect-ratio: 9 / 16;
+      background: #171a23;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 16px 18px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 5;
+    }
+
+    .hud-top-row {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge {
+      background: rgba(31, 36, 48, 0.8);
+      backdrop-filter: blur(4px);
+      color: var(--cream);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .coin-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      box-shadow: inset 0 -1px 0 rgba(0,0,0,0.3);
+    }
+
+    #sound-btn {
+      pointer-events: auto;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      background: rgba(31, 36, 48, 0.85);
+      color: var(--cream);
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    #sound-btn:active {
+      transform: scale(0.92);
+    }
+
+    #score-display {
+      margin-top: 8px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 64px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--cream);
+      text-shadow: 0 4px 0 rgba(10, 12, 16, 0.8), 0 8px 20px rgba(0, 0, 0, 0.4);
+      transition: transform 0.15s cubic-bezier(0.2, 1.5, 0.4, 1);
+    }
+
+    #score-display.bump {
+      transform: scale(1.18);
+    }
+
+    .hud-substats {
+      margin-top: 6px;
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+
+    #combo-pill {
+      background: rgba(37, 99, 235, 0.9);
+      color: #fff;
+      padding: 2px 10px;
+      border-radius: 999px;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    #combo-pill.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #tap-hint {
+      position: absolute;
+      bottom: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(31, 36, 48, 0.94);
+      color: var(--cream);
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      pointer-events: none;
+      white-space: nowrap;
+      animation: pulseHint 1.4s infinite ease-in-out;
+      z-index: 4;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: opacity 0.25s ease;
+    }
+
+    #tap-hint.hidden {
+      opacity: 0;
+    }
+
+    @keyframes pulseHint {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.06); }
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 12, 16, 0.75);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 10;
+      transition: opacity 0.25s ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 310px;
+      background: var(--card-bg);
+      border-radius: 26px;
+      padding: 28px 22px;
+      text-align: center;
+      color: var(--cream);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+      border: 2px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .emblem {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 12px;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 6px 0 #090d16;
+      border: 1.5px solid rgba(255,255,255,0.15);
+    }
+
+    h1 {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 26px;
+      line-height: 1.15;
+      color: var(--cream);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      line-height: 1.4;
+      color: #94a3b8;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+      padding: 10px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .stat-value {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--cream);
+      margin-top: 2px;
+    }
+
+    .stat-box.full-width {
+      grid-column: span 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+    }
+
+    .btn {
+      width: 100%;
+      min-height: 52px;
+      border: none;
+      border-radius: 16px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 19px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s ease, filter 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 0 var(--accent-dark);
+      margin-bottom: 12px;
