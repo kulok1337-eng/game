@@ -14,7 +14,7 @@ router = Router()
 async def cmd_start(message: Message):
     # Ссылка на ваше веб-приложение (Bothost сгенерирует её после деплоя index.html)
     # Замените https://your-app.bothost.app на адрес вашего сайта на Bothost
-    web_app_url = os.getenv("WEBAPP_URL", "https://your-app.bothost.app")
+    web_app_url = os.getenv("WEBAPP_URL", "bot-1794770639-6069-efim111.bothost.tech")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎮 Играть в Drag Nano Tower", web_app=WebAppInfo(url=web_app_url))]
